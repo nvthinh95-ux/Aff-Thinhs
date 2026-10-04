@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aff Video Studio (Gemini)</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f6f5f1;--card:#fff;--tx:#1c1b18;--mu:#6d6a62;--bd:#e3e0d6;--ac:#d9480f;--ac2:#fff;--ok:#2b8a3e}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141413;--card:#1f1e1b;--tx:#f1efe8;--mu:#a09d92;--bd:#34322d;--ac:#ff7a3d;--ac2:#1a1a18;--ok:#69db7c}}
+:root[data-theme="dark"]{--bg:#141413;--card:#1f1e1b;--tx:#f1efe8;--mu:#a09d92;--bd:#34322d;--ac:#ff7a3d;--ac2:#1a1a18;--ok:#69db7c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:640px;margin:0 auto;padding:16px}
+h1{font-size:20px;margin:4px 0 2px}
+.sub{color:var(--mu);font-size:13px;margin:0 0 14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
+label{display:block;font-weight:600;font-size:13px;margin:0 0 6px}
+select{border:1px solid var(--bd);border-radius:10px;padding:10px;background:var(--bg);color:var(--tx);font:inherit}
+input:not([type=checkbox]){width:100%;border:1px solid var(--bd);border-radius:10px;padding:10px;background:var(--bg);color:var(--tx);font:inherit}
+textarea{width:100%;min-height:120px;border:1px solid var(--bd);border-radius:10px;padding:10px;background:var(--bg);color:var(--tx);font:inherit;resize:vertical}
+.drop{border:2px dashed var(--bd);border-radius:12px;padding:18px;text-align:center;color:var(--mu);cursor:pointer}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.th{position:relative;width:64px;height:64px}
+.th img{width:100%;height:100%;object-fit:cover;border-radius:8px;border:1px solid var(--bd)}
+.th button{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:0;background:var(--tx);color:var(--bg);font-size:12px;line-height:20px;padding:0}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;padding:9px 4px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);border-radius:10px;font:inherit;font-size:13px}
+.seg button.on{background:var(--ac);color:var(--ac2);border-color:var(--ac);font-weight:600}
+.go{width:100%;padding:14px;border:0;border-radius:12px;background:var(--ac);color:var(--ac2);font:inherit;font-weight:700;font-size:16px}
+.go:disabled{opacity:.5}
+.btn{padding:8px 12px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);border-radius:9px;font:inherit;font-size:13px;text-decoration:none;display:inline-block}
+.btn.p{background:var(--ac);color:var(--ac2);border-color:var(--ac)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.tag{display:inline-block;background:var(--bg);border:1px solid var(--bd);border-radius:20px;padding:2px 10px;font-size:12px;margin:0 6px 6px 0}
+.mu{color:var(--mu);font-size:13px}
+.time{font-weight:700;color:var(--ac)}
+pre{white-space:pre-wrap;word-break:break-word;background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px;font:12.5px/1.45 ui-monospace,Menlo,monospace;margin:6px 0 0;max-height:260px;overflow:auto}
+.err{color:#e03131;font-size:13px;margin-top:8px}
+.ok{color:var(--ok)}
+</style>
+</head>
+<body>
+<main>
+<h1>🎬 Aff Video Studio</h1>
+<p class="sub">Tải ảnh + nhập thông tin sản phẩm → AI tự chọn kịch bản, tạo prompt storyboard & video 10s cho Gemini/Flow.</p>
+
+<div class="card">
+  <label for="key">Gemini API key</label>
+  <input id="key" type="password" placeholder="Dán API key từ aistudio.google.com/apikey" autocomplete="off">
+  <label for="model" style="margin-top:10px">Model</label>
+  <input id="model" value="gemini-3.8-flash">
+  <select id="msel" style="display:none;width:100%;margin-top:8px"></select>
+  <div class="row"><button class="btn" id="lm" type="button">🔄 Lấy danh sách model từ Google</button></div>
+  <label style="font-weight:400;margin-top:10px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="fb" checked style="width:auto"> Tự đổi sang model khác nếu bị quá tải</label>
+  <div class="mu" style="margin-top:6px">Key tự lưu ngay khi dán, chỉ nằm trong trình duyệt của bạn và chỉ gửi cho Google.</div>
+</div>
+
+<div class="card">
+  <label>Ảnh sản phẩm (nhiều ảnh)</label>
+  <label class="drop" id="drop" for="file" style="display:block">📷 Bấm để chọn ảnh từ máy</label>
+  <input type="file" id="file" accept="image/*" multiple style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden">
+  
+  <div class="thumbs" id="thumbs"></div>
+</div>
+
+<div class="card">
+  <label for="info">Thông tin sản phẩm</label>
+  <textarea id="info" placeholder="Tên, giá/khuyến mãi, công dụng, điểm nổi bật, đối tượng khách, giọng điệu mong muốn..."></textarea>
+</div>
+
+<div class="card">
+  <label>Có người xuất hiện trong video?</label>
+  <div class="seg" id="seg">
+    <button data-v="auto" class="on">🤖 AI tự quyết</button>
+    <button data-v="yes">Có người</button>
+    <button data-v="no">Chỉ sản phẩm</button>
+  </div>
+</div>
+
+<div class="card">
+  <label for="style">Phong cách bán hàng</label>
+  <select id="style" style="width:100%">
+    <option value="auto">🤖 AI tự chọn theo sản phẩm</option>
+    <option value="garden">🌿 Nhà vườn / nông sản</option>
+    <option value="fashion">👗 Thời trang / quần áo</option>
+    <option value="tech">📱 Đồ công nghệ</option>
+    <option value="beauty">💄 Mỹ phẩm / skincare</option>
+    <option value="home">🍳 Gia dụng / nhà bếp</option>
+    <option value="mombaby">🍼 Mẹ & bé</option>
+    <option value="food">🍜 Đồ ăn / thực phẩm</option>
+    <option value="sport">🏕️ Thể thao / outdoor</option>
+  </select>
+</div>
+
+<div class="card">
+  <label for="voice">Nhân vật / giọng đọc KOL</label>
+  <select id="voice" style="width:100%">
+    <option value="auto">🤖 AI tự chọn nhân vật hợp sản phẩm</option>
+    <option value="farmer_m">👨‍🌾 Ông nông dân / chủ vườn (điềm đạm)</option>
+    <option value="farmer_f">👩‍🌾 Cô/dì chủ vườn (hiền, ấm)</option>
+    <option value="office_f">💼 Cô gái văn phòng</option>
+    <option value="genz_f">✨ Gen Z nhí nhảnh</option>
+    <option value="mom">🍼 Mẹ bỉm sữa</option>
+    <option value="young_m">🎧 Chàng trai trẻ review</option>
+    <option value="seller_m">🛒 Chú/anh bán hàng bình dân</option>
+    <option value="stylist_f">💅 Chị KOL sang, tự tin</option>
+    <option value="elder_f">👵 Bà/cô lớn tuổi nhiều kinh nghiệm</option>
+  </select>
+  <div class="mu" style="margin-top:6px">Chọn nhân vật nào thì giọng, cách xưng hô, trang phục và bối cảnh đều đổi theo nhân vật đó.</div>
+</div>
+
+<button class="go" id="go">✨ Tạo kịch bản & prompt</button>
+<div class="err" id="err"></div>
+<div id="out"></div>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+let files=[],mode='auto',maxImg=8,ctl=null,data=null;
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+$('drop').ondragover=e=>e.preventDefault();
+$('drop').ondrop=e=>{e.preventDefault();add(e.dataTransfer.files)};
+$('file').onchange=e=>{add(e.target.files);e.target.value=''};
+$('seg').onclick=e=>{const b=e.target.closest('button');if(!b)return;mode=b.dataset.v;[...$('seg').children].forEach(x=>x.classList.toggle('on',x===b))};
+
+function add(fl){
+  for(const f of fl){if(f.type.startsWith('image/')&&files.length<maxImg)files.push(f)}
+  drawThumbs();
+}
+function drawThumbs(){
+  $('thumbs').innerHTML='';
+  files.forEach((f,i)=>{
+    const d=document.createElement('div');d.className='th';
+    const im=document.createElement('img');im.src=URL.createObjectURL(f);
+    const b=document.createElement('button');b.textContent='×';b.onclick=()=>{files.splice(i,1);drawThumbs()};
+    d.append(im,b);$('thumbs').append(d);
+  });
+}
+
+function idb(){return new Promise((res,rej)=>{const r=indexedDB.open('aff',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+async function kvSet(k,v){
+  try{localStorage.setItem(k,v)}catch(e){}
+  try{const d=await idb();d.transaction('kv','readwrite').objectStore('kv').put(v,k)}catch(e){}
+}
+async function kvGet(k){
+  try{const v=localStorage.getItem(k);if(v)return v}catch(e){}
+  try{const d=await idb();return await new Promise(r=>{const q=d.transaction('kv').objectStore('kv').get(k);q.onsuccess=()=>r(q.result||null);q.onerror=()=>r(null)})}catch(e){return null}
+}
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+(async()=>{
+  const k=await kvGet('gk'),m=await kvGet('gm2'),v=await kvGet('gv'),st=await kvGet('gs');
+  if(k)$('key').value=k;
+  $('model').value=m||'gemini-3.8-flash';
+  if(v&&[...$('voice').options].some(o=>o.value===v))$('voice').value=v;
+  if(st&&[...$('style').options].some(o=>o.value===st))$('style').value=st;
+})();
+['input','change','blur'].forEach(ev=>{
+  $('key').addEventListener(ev,()=>kvSet('gk',$('key').value.trim()));
+  $('model').addEventListener(ev,()=>kvSet('gm2',$('model').value.trim()));
+});
+$('voice').addEventListener('change',()=>kvSet('gv',$('voice').value));
+$('style').addEventListener('change',()=>kvSet('gs',$('style').value));
+let mlist=[];
+$('msel').onchange=()=>{$('model').value=$('msel').value};
+$('lm').onclick=async()=>{
+  const key=$('key').value.trim(),b=$('lm');
+  if(!key){$('err').textContent='Nhập API key trước.';return}
+  b.textContent='⏳ Đang lấy...';$('err').textContent='';
+  try{
+    let all=[],tok='';
+    do{
+      const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200'+(tok?'&pageToken='+encodeURIComponent(tok):''),{headers:{'x-goog-api-key':key}});
+      const j=await r.json();
+      if(!r.ok)throw new Error((j.error&&j.error.message)||('HTTP '+r.status));
+      all=all.concat(j.models||[]);tok=j.nextPageToken||'';
+    }while(tok);
+    mlist=all.filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent')&&/gemini/i.test(m.name)&&!/image|tts|embed|live|audio|robotics|computer|thinking-exp/i.test(m.name)).map(m=>m.name.replace('models/','')).sort().reverse();
+    if(!mlist.length)throw new Error('Không thấy model phù hợp.');
+    const sel=$('msel');sel.innerHTML='';
+    mlist.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;sel.append(o)});
+    sel.value=mlist.includes($('model').value)?$('model').value:mlist[0];$('model').value=sel.value;sel.style.display='block';
+    b.textContent='✓ Đã lấy '+mlist.length+' model — bấm để tải lại';
+  }catch(e){$('err').textContent='Lỗi lấy danh sách: '+e.message;b.textContent='🔄 Lấy danh sách model từ Google'}
+};
+function toB64(f){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>{const m=1280,r=Math.min(1,m/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*r);c.height=Math.round(im.height*r);c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.85).split(',')[1])};im.onerror=()=>rej(new Error('Không đọc được ảnh'));im.src=URL.createObjectURL(f)})}
+async function callGemini(prompt,signal,model,waits){
+  const key=$('key').value.trim();
+  if(!key)throw new Error('Chưa nhập Gemini API key');
+  try{localStorage.setItem('gk',key);localStorage.setItem('gm2',$('model').value.trim())}catch(e){}
+  const parts=[{text:prompt}];
+  for(const f of files)parts.push({inline_data:{mime_type:'image/jpeg',data:await toB64(f)}});
+  const body=JSON.stringify({contents:[{role:'user',parts}],generationConfig:{responseMimeType:'application/json',temperature:0.8}});
+  const url='https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent';
+  let r,j;
+  for(let n=0;;n++){
+    r=await fetch(url,{method:'POST',signal,headers:{'Content-Type':'application/json','x-goog-api-key':key},body});
+    j=await r.json().catch(()=>({}));
+    if(r.ok||![429,500,503,504].includes(r.status)||n>=waits.length)break;
+    $('go').textContent='⏳ '+model+' quá tải, thử lại ('+(n+1)+'/'+waits.length+')...';
+    await new Promise((ok,no)=>{const t=setTimeout(ok,waits[n]);signal.addEventListener('abort',()=>{clearTimeout(t);no(new DOMException('x','AbortError'))})});
+  }
+  if(!r.ok)throw new Error((j.error&&j.error.message)||('HTTP '+r.status));
+  const t=((j.candidates||[])[0]||{}).content;const txt=t&&t.parts?t.parts.map(p=>p.text||'').join(''):'';
+  if(!txt)throw new Error('Gemini không trả nội dung (có thể bị chặn an toàn). Thử đổi ảnh/mô tả.');
+  return JSON.parse(txt.replace(/^```json\s*|```\s*$/g,'').trim());
+}
+
+const STYLES={
+auto:'Tự chọn phong cách bối cảnh, đạo cụ, nhịp quay phù hợp nhất với loại sản phẩm.',
+garden:'Nhà vườn/nông sản: bối cảnh vườn thật, ánh nắng sớm, đất, lá, rổ tre, sương; người bán mộc mạc, thân thiện, giọng chân chất như chủ vườn kể chuyện; nhấn độ tươi, nguồn gốc, tự tay chăm sóc; quay cận chất lượng sản phẩm (độ tươi, màu, hình dáng thật, không tô vẽ quá).',
+fashion:'Thời trang: người mẫu mặc/phối đồ, quay full body và cận chất vải, form dáng, đường may; bối cảnh gương/phòng thử đồ hoặc đường phố; chuyển cảnh theo nhịp bước đi, xoay nhẹ; giọng như bạn thân chia sẻ outfit, nhấn chất liệu, độ co giãn, mặc mấy dịp.',
+tech:'Đồ công nghệ: bối cảnh bàn làm việc/setup gọn, ánh sáng sạch có điểm nhấn LED nhẹ, nền tối hoặc trung tính; quay cận cổng/nút/màn hình thật, thao tác đơn giản (cầm, bấm, cắm); giọng gọn, rõ, hơi mê đồ, nhấn tính năng thực dụng và trải nghiệm dùng.',
+beauty:'Mỹ phẩm/skincare: ánh sáng mềm, tông sáng sạch, bối cảnh phòng tắm/bàn trang điểm; cận kết cấu sản phẩm (kem, serum) và cảm giác thoa lên da, không claim y tế; giọng nhẹ, tâm sự, như review thật sau khi dùng.',
+home:'Gia dụng/nhà bếp: bối cảnh nhà bếp/phòng khách đời thường, vấn đề quen thuộc hằng ngày rồi sản phẩm giải quyết, thao tác đơn giản; giọng chị em nội trợ, thực tế, nhấn tiện lợi và tiết kiệm thời gian.',
+mombaby:'Mẹ & bé: bối cảnh phòng khách/phòng bé ấm áp, ánh sáng dịu, an toàn; chỉ mẹ hoặc đồ vật, tránh cảnh nguy hiểm; giọng mẹ bỉm tâm sự, nhấn sự an tâm, tiện, chất liệu.',
+food:'Đồ ăn/thực phẩm: cận cảnh hấp dẫn, hơi nóng, độ bóng, tiếng giòn/rót; bối cảnh bàn ăn gọn; giọng thèm thuồng, kể cảm giác ăn, vị, độ ngon.',
+sport:'Thể thao/outdoor: bối cảnh ngoài trời hoặc phòng tập, ánh sáng tự nhiên, chuyển động năng động nhưng thao tác đơn giản; giọng khỏe, truyền năng lượng, nhấn độ bền, tiện mang theo.'
+};
+function newProduct(){
+  files=[];data=null;drawThumbs();
+  $('info').value='';$('out').innerHTML='';$('err').textContent='';
+  mode='auto';[...$('seg').children].forEach((x,i)=>x.classList.toggle('on',i===0));
+  $('style').value='auto';
+  $('go').disabled=false;$('go').textContent='✨ Tạo kịch bản & prompt';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+const PERSONAS={
+farmer_m:{label:'Ông nông dân/chủ vườn nam 50-60 tuổi',addr:['tôi - bà con','chú - cô bác','bác - mấy đứa','tôi - anh chị em'],region:'giọng miền Tây/Nam Bộ mộc mạc (nghen, hen, nè, vầy, đặng) hoặc miền Trung/Bắc chân chất, chọn 1 và giữ nhất quán',voice:'deep, slightly husky, calm middle-aged Vietnamese man, slow unhurried pace, warm and honest tone, natural pauses, no hype, no cutesy intonation',style:'điềm đạm, chậm rãi, chắc chắn, kể bằng kinh nghiệm làm vườn nhiều năm, câu giản dị, không nhí nhảnh, không từ lóng giới trẻ, thật thà, đôi khi cười hiền',look:'weathered tanned man in his 50s, short grey-streaked hair, worn work shirt or ao ba ba, straw hat or cap, calloused hands, kind eyes, natural unposed',setting:'real garden/nursery, rows of plants, soil, morning sunlight, bamboo or plastic crates, watering hose, rustic'},
+farmer_f:{label:'Cô/dì chủ vườn nữ 40-50 tuổi',addr:['dì - bà con','cô - mấy đứa','chị - bà con cô bác','tôi - cả nhà'],region:'giọng miền Tây ấm áp hoặc miền Trung/Bắc hiền hậu, chọn 1 và giữ nhất quán',voice:'warm gentle middle-aged Vietnamese woman, soft steady pace, motherly and sincere, smiling tone, natural breathing',style:'hiền, ấm, chậm vừa, kể chuyện chăm cây như chăm con, chân thật, ít hô hào',look:'woman in her 40s-50s, simple floral blouse or work apron, conical hat or headscarf, sun-kissed skin, gentle smile',setting:'home garden or small nursery, potted plants, wooden bench, soft morning light'},
+office_f:{label:'Cô gái văn phòng 23-30 tuổi',addr:['mình - mọi người','tui - mấy bà','tớ - các bạn','em - cả nhà'],region:'giọng Sài Gòn hoặc Hà Nội hiện đại, gọn, trendy',voice:'clear bright young Vietnamese woman, brisk efficient pace, casual office-girl tone, confident and relatable, slight vocal fry at times',style:'nhanh gọn, thực tế, hay kể chuyện đi làm/tan ca/deadline, hài nhẹ, tự nhiên như nhắn voice cho bạn',look:'young woman late 20s, smart-casual office outfit, hair tied or loose, light everyday makeup, lanyard or tote bag optional',setting:'tidy desk/office pantry, modern apartment, window light after work, laptop and coffee cup in background'},
+genz_f:{label:'Cô gái Gen Z 18-23 tuổi',addr:['tui - mấy bà','tớ - mấy bồ','em - mọi người','mình - các bạn'],region:'giọng trẻ trung, slang vừa phải (xỉu, chill, mê, ghiền)',voice:'youthful bubbly Vietnamese girl, fast energetic pace, expressive pitch swings, giggles, playful',style:'nhí nhảnh, cảm thán, tốc độ nhanh, nhiều cảm xúc, nhưng vẫn kể chi tiết thật',look:'teen/young woman early 20s, trendy casual outfit, hair clips or ponytail, bright natural expressions',setting:'cozy bedroom, ring light glow, aesthetic shelves, pastel tones, phone-recorded feel'},
+mom:{label:'Mẹ bỉm sữa 28-38 tuổi',addr:['mình - các mẹ','mẹ - các mẹ','em - chị em','tui - hội mẹ bỉm'],region:'giọng đời thường, thân thiện',voice:'warm relatable Vietnamese mother, medium pace, soft and caring, slightly tired but cheerful, conversational',style:'tâm sự, thực tế, hay nhắc con cái/việc nhà, nhấn sự an tâm và tiện, không phóng đại',look:'woman early-mid 30s, comfy home clothes, hair in loose bun, no heavy makeup, natural',setting:'bright living room or kitchen at home, toys or baby items softly in background, daylight'},
+young_m:{label:'Chàng trai trẻ review 22-30 tuổi',addr:['mình - anh em','tui - mọi người','anh - ae','mình - các bạn'],region:'giọng trẻ thẳng tính, gọn',voice:'casual young Vietnamese man, medium-fast pace, straightforward and slightly humorous, relaxed and genuine',style:'thẳng, hài khô nhẹ, kể trải nghiệm thật, nói gọn, không màu mè',look:'young man mid-20s, plain t-shirt or hoodie, short hair, natural look',setting:'desk setup, room or workshop, neutral tones, practical lighting'},
+seller_m:{label:'Chú/anh bán hàng bình dân 40-50 tuổi',addr:['anh - anh chị','chú - cô bác','tôi - bà con','anh - mấy em'],region:'giọng chợ/xưởng bình dân, nói to rõ, chắc nịch',voice:'confident down-to-earth middle-aged Vietnamese man, clear projecting voice, steady pace with emphasis, honest salesman tone, slight humor',style:'chắc nịch, thật thà, nói giá/chất lượng thẳng, hơi hài, như đang bán ở chợ nhưng không gào',look:'man in his 40s, plain shirt, apron or work vest optional, friendly weathered face',setting:'small shop, market stall or warehouse shelves, goods stacked, fluorescent-plus-daylight look'},
+stylist_f:{label:'Chị KOL sang, tự tin 28-35 tuổi',addr:['chị - các em','mình - mọi người','chị - các nàng','mình - các bạn'],region:'giọng chuẩn, mượt, sang',voice:'smooth polished confident Vietnamese woman, measured elegant pace, soft low-mid pitch, calm authority, subtle smile',style:'mượt, tự tin, chọn từ tinh tế, nhận xét chi tiết như stylist, ít cảm thán',look:'elegant woman around 30, well-styled outfit, neat hair, refined makeup',setting:'bright minimalist apartment, boutique or vanity corner, soft diffused light, clean tones'},
+elder_f:{label:'Bà/cô lớn tuổi 55-65 tuổi',addr:['bà - các con','cô - mấy đứa','tui - bà con','bà - con cháu'],region:'giọng quê, chậm rãi, hiền',voice:'older Vietnamese woman, slow gentle pace, slightly raspy warm voice, wise and kind, frequent small pauses',style:'chậm rãi, thủ thỉ, nói từ kinh nghiệm cả đời, giản dị, nhẹ nhàng, không hô hào',look:'woman in her 60s, simple home clothes or ao ba ba, grey hair, gentle wrinkled smile',setting:'old-style home courtyard, kitchen with wooden furniture, warm natural light'}
+};
+const HOOKS=['mở bằng một câu hỏi gây tò mò về chính sản phẩm','mở bằng tình huống than thở quen thuộc mà sản phẩm giải quyết','mở bằng một chi tiết/con số cụ thể nhìn thấy trên sản phẩm','mở bằng việc thú nhận ban đầu mình không tin/không định mua','mở giữa chừng như đang kể dở một câu chuyện','mở bằng việc phủ định một quan niệm sai phổ biến','mở bằng một lời nhắc nhẹ/cảnh báo đừng bỏ lỡ','mở bằng cảm thán thật về cảm giác khi cầm/nhìn sản phẩm','mở bằng việc hỏi ngược người xem một câu đời thường','mở bằng một mẹo nhỏ hoặc bí quyết liên quan sản phẩm','mở bằng việc nhắc một người thân/đồng nghiệp đã hỏi mình','mở bằng so sánh trước và sau khi có sản phẩm'];
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+function hookHist(){try{return JSON.parse(localStorage.getItem('hk')||'[]')}catch(e){return[]}}
+function saveHook(h){try{const a=hookHist();a.unshift(h);localStorage.setItem('hk',JSON.stringify(a.slice(0,12)))}catch(e){}}
+function buildPrompt(){
+  const person={auto:'Tự quyết định có nên có người hay không dựa trên loại sản phẩm (VD: thời trang, mỹ phẩm, đồ dùng cá nhân, gia dụng cần demo → thường có người; đồ vật nhỏ, phụ kiện, thực phẩm đóng gói cần tả chi tiết → có thể chỉ tay/sản phẩm). Giải thích ngắn gọn.',yes:'BẮT BUỘC có người xuất hiện (người mẫu/KOC) tương tác với sản phẩm.',no:'KHÔNG có người; chỉ sản phẩm, bàn tay không lộ mặt cũng không dùng, tập trung cận cảnh sản phẩm.'}[mode];
+  return `Bạn là chuyên gia làm video affiliate TikTok/Reels bán hàng. ${files.length?'Các ảnh đính kèm là ảnh sản phẩm (theo thứ tự tải lên). ':''}Thông tin sản phẩm từ người dùng:\n"""\n${$('info').value.trim()||'(không có, hãy suy ra từ ảnh)'}\n"""\nYêu cầu người xuất hiện: ${person}\n\nNhiệm vụ: nhận diện sản phẩm, chọn kiểu kịch bản affiliate TikTok phù hợp nhất (giải quyết vấn đề, before/after, unboxing, ASMR cận cảnh, review nhanh, lifestyle...), rồi lên kịch bản video DỌC 9:16 dài 15 giây gồm 4 phân cảnh liên tiếp (0-3s, 3-7s, 7-11s, 11-15s).
+${(()=>{
+  const k=$('voice').value,P=PERSONAS[k],hist=hookHist();
+  const hook=pick(HOOKS);
+  let t='';
+  if(P){
+    const ad=pick(P.addr);
+    t+=`NHÂN VẬT ĐÃ CHỌN: ${P.label}. Xưng hô: "${ad}" (dùng nhất quán suốt video). ${P.region}.\nCách nói: ${P.style}.\nGiọng (đưa nguyên văn vào veo_prompt): ${P.voice}.\nNgoại hình/trang phục (đưa vào storyboard_prompt và veo_prompt): ${P.look}.\nBối cảnh (đưa vào cả hai prompt): ${P.setting}.\n`;
+  }else{
+    t+=`NHÂN VẬT: hãy tự chọn MỘT nhân vật hợp nhất với sản phẩm từ danh sách: ${Object.values(PERSONAS).map(x=>x.label).join('; ')}. Rồi tự quyết xưng hô riêng cho nhân vật đó (đa dạng: tôi/chú/bác/dì/chị/mình/tui/tớ/em/bà; gọi người xem: bà con/cô bác/mấy bà/các mẹ/anh em/mọi người...). Giọng, cách nói, ngoại hình, trang phục, bối cảnh đều phải đúng nhân vật đó.\n`;
+  }
+  t+=`NGUYÊN TẮC NHÂN VẬT: giọng, từ vựng, tốc độ, cảm xúc, trang phục, bối cảnh và cử chỉ phải ĂN KHỚP với nhau. Nhân vật điềm đạm tuyệt đối không nói nhí nhảnh; nhân vật trẻ không nói kiểu già; từ vựng đúng độ tuổi và vùng miền. Khi nhân vật và phong cách bán hàng khác nhau thì nhân vật quyết định giọng, người, bối cảnh; phong cách bán hàng chỉ gợi ý cách quay và điểm nhấn sản phẩm.\n`;
+  t+=`HOOK: bắt buộc theo kiểu "${hook}", viết riêng cho chính sản phẩm này từ chi tiết thật nhìn thấy trong ảnh/thông tin; không dùng câu mẫu chung chung.${hist.length?' TUYỆT ĐỐI không lặp lại hay gần giống các hook đã dùng gần đây: '+hist.map(x=>'"'+x+'"').join(' | '):''}\n`;
+  return t;
+})()}
+LỜI THOẠI (quan trọng nhất): video 15 giây nên lời thoại phải ĐỦ DÀI, tổng 50-60 từ tiếng Việt (KHÔNG được ngắn hơn 48 từ), chia theo cảnh: cảnh 1 khoảng 10-12 từ, cảnh 2 khoảng 14-16 từ, cảnh 3 khoảng 14-16 từ, cảnh 4 khoảng 12-14 từ. Hãy tự đếm từ trước khi trả về. Viết như người thật đang nói thành tiếng chứ không phải đọc kịch bản: câu có nhịp dài ngắn đan xen, có từ đệm hợp nhân vật, có chỗ ngắt, tự sửa lời nhẹ, hỏi rồi tự trả lời, một hai chi tiết giác quan cụ thể (nhìn, sờ, mùi, âm thanh) lấy từ sản phẩm thật, một khoảnh khắc cảm xúc nhỏ, và kết bằng CTA tự nhiên đúng chất nhân vật. Không dùng khuôn sáo ("sản phẩm tuyệt vời", "chất lượng cao cấp"), không liệt kê tính năng khô cứng, không lặp mẫu câu cuối đoạn giữa các cảnh.
+Phong cách bán hàng: ${STYLES[$('style').value]||STYLES.auto}
+Quy tắc nội dung: không bịa tính năng/giá không có trong thông tin; không claim y tế sai sự thật.
+QUY TẮC BẮT BUỘC để video không méo, không đơ, đúng vật lý:
+- Bước 1, quan sát kỹ ảnh và viết "product_lock": mô tả tiếng Anh cực chi tiết sản phẩm (loại, hình dáng, kích thước tương đối, màu chính xác, chất liệu, bề mặt, logo/chữ nguyên văn và vị trí, nắp/nút/chi tiết đặc trưng). Chèn NGUYÊN VĂN product_lock vào cả storyboard_prompt và veo_prompt, kèm lệnh giữ sản phẩm KHÔNG đổi hình dạng/màu/logo/chữ ở mọi khung và mọi giây.
+- Mỗi phân cảnh chỉ MỘT hành động đơn giản, dễ làm đúng vật lý (cầm lên, xoay nhẹ, đặt xuống, mở nắp, rót, thoa, mặc, bấm, nhìn). Tránh hành động nhiều bước, hai tay chồng nhau, thao tác vật nhỏ bằng đầu ngón tay, chất lỏng bắn tung toé, vật bay hay lơ lửng, hiệu ứng huyền ảo. Trọng lực thật: vật luôn nằm trong tay hoặc đặt trên bề mặt, không có vật nào tự lơ lửng.
+- Tay người: đúng 2 tay, mỗi tay 5 ngón, khớp rõ; ưu tiên cỡ cảnh trung và cận vừa, tránh cận cực gần ngón tay đang thao tác phức tạp. Nếu cảnh dùng sản phẩm quá khó, hãy chọn cách thể hiện đơn giản hơn (cầm sản phẩm khoe, đặt lên bàn, kết quả sau khi dùng).
+- Nếu có người: chuyển động tự nhiên kiểu quay UGC bằng điện thoại: nhìn ống kính nói chuyện, chớp mắt, đổi biểu cảm nhẹ, gật đầu, nhún vai, cử chỉ tay nhỏ, khẩu hình khớp lời thoại, dáng thả lỏng không cứng; camera cầm tay rung nhẹ, hơi không hoàn hảo cho chân thực.
+- veo_prompt phải ghi: ảnh sản phẩm là tham chiếu hình dáng nghiêm ngặt, ảnh storyboard là thứ tự cảnh; kết thúc bằng dòng "Avoid:" gồm: morphing or warping product, changed logo or text, floating or levitating objects, extra or missing fingers or hands, stiff robotic motion, unnatural physics, text overlays, subtitles, watermarks.
+
+Tạo đúng 2 prompt tiếng Anh:
+1) "storyboard_prompt": MỘT prompt tạo MỘT ảnh duy nhất dạng lưới 2x2 gồm 4 khung dọc 9:16 nhỏ, có gutter trắng mỏng, đánh số 1-4 theo thứ tự đọc (trái→phải, trên→dưới), mỗi khung là một phân cảnh, cùng một sản phẩm giống hệt ảnh tham chiếu, cùng phong cách ánh sáng/màu sắc nhất quán${person.includes('KHÔNG')?'':', cùng một nhân vật nhất quán đúng ngoại hình, trang phục và bối cảnh của nhân vật đã chọn'}, ghi rõ nội dung từng khung. Không có chữ nào trong ảnh ngoài số thứ tự.
+2) "veo_prompt": MỘT prompt cho Veo, dùng ảnh storyboard làm tham chiếu: yêu cầu video dọc 9:16 dài 15 giây, chuyển động tuần tự theo 4 khung số 1→4, KHÔNG hiển thị lưới, viền hay số trong video, mỗi khung thành một cảnh liền mạch với chuyển cảnh mượt. Ghi rõ từng mốc thời gian, camera, ánh sáng, nhạc nền nhẹ, và lời thoại tiếng Việt ĐẦY ĐỦ của KOL (giữ nguyên các câu dài, từ đệm, chỗ ngắt nghỉ) đặt trong ngoặc kép, kèm dòng "Voice:" mô tả chất giọng của nhân vật, và chỉ dẫn (tông, tốc độ, cảm xúc, ngắt nghỉ, hơi thở) cho từng mốc để giọng nghe tự nhiên như người thật nói chuyện, không đều đều. Nêu rõ không thêm chữ/logo ngoài sản phẩm gốc.
+
+CHỈ trả về JSON hợp lệ, không markdown, theo schema:
+{"product_lock":"mô tả chi tiết sản phẩm bằng tiếng Anh","product":{"name":"","category":"","key_selling_points":["",""]},"person":{"use_person":true,"reason":"giải thích tiếng Việt 1 câu"},"persona":"nhân vật đã dùng + cách xưng hô","concept":{"style":"tên kiểu kịch bản","hook":"câu hook tiếng Việt","cta":"câu CTA tiếng Việt"},"scenes":[{"time":"0-3s","desc_vi":"mô tả cảnh tiếng Việt","voiceover_vi":"lời thoại KOL tiếng Việt của cảnh này"}],"storyboard_prompt":"","veo_prompt":"","caption":"caption đăng bài + 5 hashtag tiếng Việt"}`;
+}
+
+$('go').onclick=async()=>{
+  $('err').textContent='';
+  if(!files.length&&!$('info').value.trim()){$('err').textContent='Hãy tải ảnh hoặc nhập thông tin sản phẩm.';return}
+  ctl=new AbortController();
+  $('go').disabled=true;$('go').textContent='⏳ Đang phân tích...';$('out').innerHTML='';
+  try{
+    const m0=$('model').value.trim()||'gemini-3.8-flash';
+    const chain=[m0];
+    if($('fb').checked)mlist.filter(n=>n!==m0&&/flash/i.test(n)&&!/lite/i.test(n)).slice(0,3).forEach(n=>chain.push(n));
+    const prompt=buildPrompt();let lastErr;
+    for(let i=0;i<chain.length;i++){
+      try{data=await callGemini(prompt,ctl.signal,chain[i],i===0&&chain.length>1?[3000,6000]:[3000,6000,10000]);lastErr=null;if(i>0)$('err').innerHTML='<span class="ok">Đã tự đổi sang model: '+esc(chain[i])+'</span>';break}
+      catch(e){lastErr=e;if(e.name==='AbortError'||!/demand|overload|unavailable|quota|429|503/i.test(e.message||''))break}
+    }
+    if(lastErr)throw lastErr;
+    if(data&&data.concept&&data.concept.hook)saveHook(data.concept.hook);
+    render();
+  }catch(e){
+    $('err').textContent=e&&e.code==='cancelled'?'Đã dừng.':('Lỗi: '+(e&&(e.message||e.code)||'không rõ')+'. Thử lại nhé.');
+  }
+  $('go').disabled=false;$('go').textContent='✨ Tạo kịch bản & prompt';
+};
+
+function copy(t,btn){
+  const done=()=>{const o=btn.textContent;btn.textContent='✓ Đã copy';setTimeout(()=>btn.textContent=o,1200)};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,()=>fb(t,done))}else fb(t,done);
+}
+function fb(t,done){const a=document.createElement('textarea');a.value=t;document.body.append(a);a.select();try{document.execCommand('copy');done()}catch(e){}a.remove()}
+
+function render(){
+  const d=data||{},p=d.product||{},pe=d.person||{},c=d.concept||{},sc=d.scenes||[];
+  let h=`<div class="card"><b>${esc(p.name)}</b> <span class="mu">· ${esc(p.category)}</span><div style="margin-top:8px">`
+   +(p.key_selling_points||[]).map(x=>`<span class="tag">${esc(x)}</span>`).join('')+`</div>`
+   +`<div class="mu">Nhân vật: <b>${esc(d.persona)}</b></div><div class="mu">Kiểu kịch bản: <b>${esc(c.style)}</b></div>`
+   +`<div class="mu" style="margin-top:4px">${pe.use_person?'👤 Có người':'📦 Chỉ sản phẩm'} — ${esc(pe.reason)}</div>`
+   +`<div style="margin-top:8px">🪝 <b>Hook:</b> ${esc(c.hook)}</div><div>📣 <b>CTA:</b> ${esc(c.cta)}</div></div>`;
+  h+=`<div class="card"><b>🔒 AI nhận diện sản phẩm (kiểm tra có đúng không)</b><div class="mu" style="margin-top:6px">${esc(d.product_lock)}</div></div>`;
+  h+=`<div class="card"><b>Kịch bản 4 phân cảnh</b>`+sc.map((s,i)=>`<div style="margin-top:8px"><span class="time">${i+1} · ${esc(s.time)}</span> ${esc(s.desc_vi)}<div class="mu">🎙 ${esc(s.voiceover_vi)}</div></div>`).join('')+`</div>`;
+  h+=`<div class="card"><b>① Prompt ảnh storyboard (1 ảnh, 4 khung)</b><pre>${esc(d.storyboard_prompt)}</pre><div class="row"><button class="btn p" id="c1">Copy prompt ảnh</button><a class="btn" target="_blank" rel="noopener" href="https://gemini.google.com/app">Mở Gemini</a></div><div class="mu" style="margin-top:6px">Đính kèm ảnh sản phẩm gốc khi dán vào Gemini (chế độ tạo ảnh).</div></div>`
+   +`<div class="card"><b>② Prompt video Veo (15s + giọng KOL)</b><pre>${esc(d.veo_prompt)}</pre><div class="row"><button class="btn p" id="c2">Copy prompt video</button><a class="btn" target="_blank" rel="noopener" href="https://labs.google/fx/tools/flow">Mở Flow</a></div><div class="mu" style="margin-top:6px">Trong Flow, đính kèm CẢ ảnh sản phẩm gốc và ảnh storyboard rồi dán prompt này.</div></div>`
+   +`<div class="card"><b>Caption</b><pre>${esc(d.caption)}</pre><div class="row"><button class="btn" id="cc">Copy caption</button></div></div>`
+   +`<button class="go" id="np" style="background:var(--tx);color:var(--bg)">🆕 Sản phẩm mới</button>`;
+  $('out').innerHTML=h;
+  $('c1').onclick=e=>copy(d.storyboard_prompt||'',e.target);
+  $('c2').onclick=e=>copy(d.veo_prompt||'',e.target);
+  $('cc').onclick=e=>copy(d.caption||'',e.target);
+  $('np').onclick=newProduct;
+  $('out').scrollIntoView({behavior:'smooth'});
+}
+</script>
+</body>
+</html>
