@@ -53,7 +53,7 @@ pre{white-space:pre-wrap;word-break:break-word;background:var(--bg);border:1px s
   <select id="msel" style="display:none;width:100%;margin-top:8px"></select>
   <div class="row"><button class="btn" id="lm" type="button">🔄 Lấy danh sách model từ Google</button></div>
   <label style="font-weight:400;margin-top:10px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="fb" checked style="width:auto"> Tự đổi sang model khác nếu bị quá tải</label>
-  <div class="mu" style="margin-top:6px">Key chỉ lưu trong trình duyệt của bạn, không gửi đi đâu ngoài Google.</div>
+  <div class="mu" style="margin-top:6px">Key tự lưu ngay khi dán, chỉ nằm trong trình duyệt của bạn và chỉ gửi cho Google.</div>
 </div>
 
 <div class="card">
@@ -90,6 +90,10 @@ pre{white-space:pre-wrap;word-break:break-word;background:var(--bg);border:1px s
     <option value="mombaby">🍼 Mẹ & bé</option>
     <option value="food">🍜 Đồ ăn / thực phẩm</option>
     <option value="sport">🏕️ Thể thao / outdoor</option>
+    <option value="pet">🐶 Thú cưng</option>
+    <option value="vehicle">🚗 Xe cộ / phụ kiện xe</option>
+    <option value="accessory">👜 Phụ kiện / trang sức / túi</option>
+    <option value="health">🧴 Chăm sóc sức khỏe (không claim y tế)</option>
   </select>
 </div>
 
@@ -108,6 +112,36 @@ pre{white-space:pre-wrap;word-break:break-word;background:var(--bg);border:1px s
     <option value="elder_f">👵 Bà/cô lớn tuổi nhiều kinh nghiệm</option>
   </select>
   <div class="mu" style="margin-top:6px">Chọn nhân vật nào thì giọng, cách xưng hô, trang phục và bối cảnh đều đổi theo nhân vật đó.</div>
+</div>
+
+<div class="card">
+  <label for="vstyle">Phong cách voice</label>
+  <select id="vstyle" style="width:100%">
+    <option value="auto">🤖 AI tự chọn hợp sản phẩm</option>
+    <option value="tiktok">🔥 Bán hàng TikTok (nhanh, cuốn, chốt đơn)</option>
+    <option value="humor_light">😄 Hài hước nhẹ</option>
+    <option value="humor_funny">🤪 Bựa hài, lầy lội</option>
+    <option value="cute">🎀 Nhí nhảnh</option>
+    <option value="serious">🎯 Nghiêm túc, chắc chắn</option>
+    <option value="warm">💬 Tâm sự chân thành</option>
+    <option value="expert">🧑‍🏫 Chuyên gia chia sẻ</option>
+    <option value="story">📖 Kể chuyện đời thường</option>
+    <option value="honest">✅ Review thật thà</option>
+    <option value="asmr">🌙 Thủ thỉ nhẹ nhàng (kiểu ASMR)</option>
+  </select>
+  <label for="rfmt" style="margin-top:10px">Kiểu review</label>
+  <select id="rfmt" style="width:100%">
+    <option value="auto">🤖 AI tự chọn</option>
+    <option value="direct">Giới thiệu trực tiếp</option>
+    <option value="problem">Giải quyết vấn đề</option>
+    <option value="unbox">Mở hộp / khoe hàng</option>
+    <option value="compare">So sánh trước - sau</option>
+    <option value="qa">Hỏi đáp khách hay hỏi</option>
+    <option value="story">Kể trải nghiệm</option>
+    <option value="tips">Mẹo / bí quyết</option>
+    <option value="reason">Top lý do nên mua</option>
+  </select>
+  <div class="mu" style="margin-top:6px">Chọn voice nào thì lời thoại, giọng Veo, biểu cảm, nhạc nền và màu ảnh đều đổi theo (vẫn giữ đúng tính cách nhân vật).</div>
 </div>
 
 <button class="go" id="go">✨ Tạo kịch bản & prompt</button>
@@ -139,7 +173,33 @@ function drawThumbs(){
   });
 }
 
-try{$('key').value=localStorage.getItem('gk')||'';$('model').value=localStorage.getItem('gm2')||'gemini-3.8-flash'}catch(e){}
+function idb(){return new Promise((res,rej)=>{const r=indexedDB.open('aff',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+async function kvSet(k,v){
+  try{localStorage.setItem(k,v)}catch(e){}
+  try{const d=await idb();d.transaction('kv','readwrite').objectStore('kv').put(v,k)}catch(e){}
+}
+async function kvGet(k){
+  try{const v=localStorage.getItem(k);if(v)return v}catch(e){}
+  try{const d=await idb();return await new Promise(r=>{const q=d.transaction('kv').objectStore('kv').get(k);q.onsuccess=()=>r(q.result||null);q.onerror=()=>r(null)})}catch(e){return null}
+}
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+(async()=>{
+  const k=await kvGet('gk'),m=await kvGet('gm2'),v=await kvGet('gv'),st=await kvGet('gs'),vsv=await kvGet('gvs'),rf=await kvGet('gr');
+  if(k){$('key').value=k;setTimeout(()=>{try{$('lm').click()}catch(e){}},400)}
+  $('model').value=m||'gemini-3.8-flash';
+  if(v&&[...$('voice').options].some(o=>o.value===v))$('voice').value=v;
+  if(vsv&&[...$('vstyle').options].some(o=>o.value===vsv))$('vstyle').value=vsv;
+  if(rf&&[...$('rfmt').options].some(o=>o.value===rf))$('rfmt').value=rf;
+  if(st&&[...$('style').options].some(o=>o.value===st))$('style').value=st;
+})();
+['input','change','blur'].forEach(ev=>{
+  $('key').addEventListener(ev,()=>kvSet('gk',$('key').value.trim()));
+  $('model').addEventListener(ev,()=>kvSet('gm2',$('model').value.trim()));
+});
+$('voice').addEventListener('change',()=>kvSet('gv',$('voice').value));
+$('style').addEventListener('change',()=>kvSet('gs',$('style').value));
+$('vstyle').addEventListener('change',()=>kvSet('gvs',$('vstyle').value));
+$('rfmt').addEventListener('change',()=>kvSet('gr',$('rfmt').value));
 let mlist=[];
 $('msel').onchange=()=>{$('model').value=$('msel').value};
 $('lm').onclick=async()=>{
@@ -187,6 +247,10 @@ async function callGemini(prompt,signal,model,waits){
 
 const STYLES={
 auto:'Tự chọn phong cách bối cảnh, đạo cụ, nhịp quay phù hợp nhất với loại sản phẩm.',
+pet:'Thú cưng: bối cảnh nhà/công viên, thú cưng thật tự nhiên, an toàn; nhấn sự tiện và độ an tâm, không cảnh nguy hiểm.',
+vehicle:'Xe cộ/phụ kiện xe: bối cảnh gara, đường phố hoặc trong xe, thao tác lắp/dùng đơn giản đúng thực tế; nhấn độ bền, tiện, an toàn.',
+accessory:'Phụ kiện/trang sức/túi: ánh sáng đẹp, cận chất liệu, đường may, độ lấp lánh thật; phối đồ đơn giản; nhấn kiểu dáng và dịp dùng.',
+health:'Chăm sóc sức khỏe: giọng chân thành, nói về thói quen và cảm giác dùng, TUYỆT ĐỐI không hứa chữa bệnh, không claim y tế, không cam kết kết quả.',
 garden:'Nhà vườn/nông sản: bối cảnh vườn thật, ánh nắng sớm, đất, lá, rổ tre, sương; người bán mộc mạc, thân thiện, giọng chân chất như chủ vườn kể chuyện; nhấn độ tươi, nguồn gốc, tự tay chăm sóc; quay cận chất lượng sản phẩm (độ tươi, màu, hình dáng thật, không tô vẽ quá).',
 fashion:'Thời trang: người mẫu mặc/phối đồ, quay full body và cận chất vải, form dáng, đường may; bối cảnh gương/phòng thử đồ hoặc đường phố; chuyển cảnh theo nhịp bước đi, xoay nhẹ; giọng như bạn thân chia sẻ outfit, nhấn chất liệu, độ co giãn, mặc mấy dịp.',
 tech:'Đồ công nghệ: bối cảnh bàn làm việc/setup gọn, ánh sáng sạch có điểm nhấn LED nhẹ, nền tối hoặc trung tính; quay cận cổng/nút/màn hình thật, thao tác đơn giản (cầm, bấm, cắm); giọng gọn, rõ, hơi mê đồ, nhấn tính năng thực dụng và trải nghiệm dùng.',
@@ -205,23 +269,47 @@ function newProduct(){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 const PERSONAS={
-farmer_m:{label:'Ông nông dân/chủ vườn nam 50-60 tuổi',addr:['tôi - bà con','chú - cô bác','bác - mấy đứa','tôi - anh chị em'],region:'giọng miền Tây/Nam Bộ mộc mạc (nghen, hen, nè, vầy, đặng) hoặc miền Trung/Bắc chân chất, chọn 1 và giữ nhất quán',voice:'deep, slightly husky, calm middle-aged Vietnamese man, slow unhurried pace, warm and honest tone, natural pauses, no hype, no cutesy intonation',style:'điềm đạm, chậm rãi, chắc chắn, kể bằng kinh nghiệm làm vườn nhiều năm, câu giản dị, không nhí nhảnh, không từ lóng giới trẻ, thật thà, đôi khi cười hiền',look:'weathered tanned man in his 50s, short grey-streaked hair, worn work shirt or ao ba ba, straw hat or cap, calloused hands, kind eyes, natural unposed',setting:'real garden/nursery, rows of plants, soil, morning sunlight, bamboo or plastic crates, watering hose, rustic'},
-farmer_f:{label:'Cô/dì chủ vườn nữ 40-50 tuổi',addr:['dì - bà con','cô - mấy đứa','chị - bà con cô bác','tôi - cả nhà'],region:'giọng miền Tây ấm áp hoặc miền Trung/Bắc hiền hậu, chọn 1 và giữ nhất quán',voice:'warm gentle middle-aged Vietnamese woman, soft steady pace, motherly and sincere, smiling tone, natural breathing',style:'hiền, ấm, chậm vừa, kể chuyện chăm cây như chăm con, chân thật, ít hô hào',look:'woman in her 40s-50s, simple floral blouse or work apron, conical hat or headscarf, sun-kissed skin, gentle smile',setting:'home garden or small nursery, potted plants, wooden bench, soft morning light'},
-office_f:{label:'Cô gái văn phòng 23-30 tuổi',addr:['mình - mọi người','tui - mấy bà','tớ - các bạn','em - cả nhà'],region:'giọng Sài Gòn hoặc Hà Nội hiện đại, gọn, trendy',voice:'clear bright young Vietnamese woman, brisk efficient pace, casual office-girl tone, confident and relatable, slight vocal fry at times',style:'nhanh gọn, thực tế, hay kể chuyện đi làm/tan ca/deadline, hài nhẹ, tự nhiên như nhắn voice cho bạn',look:'young woman late 20s, smart-casual office outfit, hair tied or loose, light everyday makeup, lanyard or tote bag optional',setting:'tidy desk/office pantry, modern apartment, window light after work, laptop and coffee cup in background'},
-genz_f:{label:'Cô gái Gen Z 18-23 tuổi',addr:['tui - mấy bà','tớ - mấy bồ','em - mọi người','mình - các bạn'],region:'giọng trẻ trung, slang vừa phải (xỉu, chill, mê, ghiền)',voice:'youthful bubbly Vietnamese girl, fast energetic pace, expressive pitch swings, giggles, playful',style:'nhí nhảnh, cảm thán, tốc độ nhanh, nhiều cảm xúc, nhưng vẫn kể chi tiết thật',look:'teen/young woman early 20s, trendy casual outfit, hair clips or ponytail, bright natural expressions',setting:'cozy bedroom, ring light glow, aesthetic shelves, pastel tones, phone-recorded feel'},
-mom:{label:'Mẹ bỉm sữa 28-38 tuổi',addr:['mình - các mẹ','mẹ - các mẹ','em - chị em','tui - hội mẹ bỉm'],region:'giọng đời thường, thân thiện',voice:'warm relatable Vietnamese mother, medium pace, soft and caring, slightly tired but cheerful, conversational',style:'tâm sự, thực tế, hay nhắc con cái/việc nhà, nhấn sự an tâm và tiện, không phóng đại',look:'woman early-mid 30s, comfy home clothes, hair in loose bun, no heavy makeup, natural',setting:'bright living room or kitchen at home, toys or baby items softly in background, daylight'},
-young_m:{label:'Chàng trai trẻ review 22-30 tuổi',addr:['mình - anh em','tui - mọi người','anh - ae','mình - các bạn'],region:'giọng trẻ thẳng tính, gọn',voice:'casual young Vietnamese man, medium-fast pace, straightforward and slightly humorous, relaxed and genuine',style:'thẳng, hài khô nhẹ, kể trải nghiệm thật, nói gọn, không màu mè',look:'young man mid-20s, plain t-shirt or hoodie, short hair, natural look',setting:'desk setup, room or workshop, neutral tones, practical lighting'},
-seller_m:{label:'Chú/anh bán hàng bình dân 40-50 tuổi',addr:['anh - anh chị','chú - cô bác','tôi - bà con','anh - mấy em'],region:'giọng chợ/xưởng bình dân, nói to rõ, chắc nịch',voice:'confident down-to-earth middle-aged Vietnamese man, clear projecting voice, steady pace with emphasis, honest salesman tone, slight humor',style:'chắc nịch, thật thà, nói giá/chất lượng thẳng, hơi hài, như đang bán ở chợ nhưng không gào',look:'man in his 40s, plain shirt, apron or work vest optional, friendly weathered face',setting:'small shop, market stall or warehouse shelves, goods stacked, fluorescent-plus-daylight look'},
-stylist_f:{label:'Chị KOL sang, tự tin 28-35 tuổi',addr:['chị - các em','mình - mọi người','chị - các nàng','mình - các bạn'],region:'giọng chuẩn, mượt, sang',voice:'smooth polished confident Vietnamese woman, measured elegant pace, soft low-mid pitch, calm authority, subtle smile',style:'mượt, tự tin, chọn từ tinh tế, nhận xét chi tiết như stylist, ít cảm thán',look:'elegant woman around 30, well-styled outfit, neat hair, refined makeup',setting:'bright minimalist apartment, boutique or vanity corner, soft diffused light, clean tones'},
-elder_f:{label:'Bà/cô lớn tuổi 55-65 tuổi',addr:['bà - các con','cô - mấy đứa','tui - bà con','bà - con cháu'],region:'giọng quê, chậm rãi, hiền',voice:'older Vietnamese woman, slow gentle pace, slightly raspy warm voice, wise and kind, frequent small pauses',style:'chậm rãi, thủ thỉ, nói từ kinh nghiệm cả đời, giản dị, nhẹ nhàng, không hô hào',look:'woman in her 60s, simple home clothes or ao ba ba, grey hair, gentle wrinkled smile',setting:'old-style home courtyard, kitchen with wooden furniture, warm natural light'}
+farmer_m:{label:'Ông nông dân/chủ vườn nam 50-60 tuổi',addr:['tôi - bà con', 'chú - cô bác', 'bác - anh chị', 'tôi - các bác', 'tôi - mọi người'],region:'giọng miền Tây/Nam Bộ mộc mạc (nghen, hen, nè, vầy, đặng) hoặc miền Trung/Bắc chân chất, chọn 1 và giữ nhất quán',voice:'deep, slightly husky, calm middle-aged Vietnamese man, slow unhurried pace, warm and honest tone, natural pauses, no hype, no cutesy intonation',style:'điềm đạm, chậm rãi, chắc chắn, kể bằng kinh nghiệm làm vườn nhiều năm, câu giản dị, không nhí nhảnh, không từ lóng giới trẻ, thật thà, đôi khi cười hiền',look:'weathered tanned man in his 50s, short grey-streaked hair, worn work shirt or ao ba ba, straw hat or cap, calloused hands, kind eyes, natural unposed',setting:'real garden/nursery, rows of plants, soil, morning sunlight, bamboo or plastic crates, watering hose, rustic'},
+farmer_f:{label:'Cô/dì chủ vườn nữ 40-50 tuổi',addr:['dì - bà con', 'cô - cô chú anh chị', 'chị - bà con cô bác', 'tôi - mọi người', 'mình - các bác'],region:'giọng miền Tây ấm áp hoặc miền Trung/Bắc hiền hậu, chọn 1 và giữ nhất quán',voice:'warm gentle middle-aged Vietnamese woman, soft steady pace, motherly and sincere, smiling tone, natural breathing',style:'hiền, ấm, chậm vừa, kể chuyện chăm cây như chăm con, chân thật, ít hô hào',look:'woman in her 40s-50s, simple floral blouse or work apron, conical hat or headscarf, sun-kissed skin, gentle smile',setting:'home garden or small nursery, potted plants, wooden bench, soft morning light'},
+office_f:{label:'Cô gái văn phòng 23-30 tuổi',addr:['mình - mọi người', 'tui - mọi người ơi', 'tớ - các bạn', 'em - anh chị', 'mình - chị em'],region:'giọng Sài Gòn hoặc Hà Nội hiện đại, gọn, trendy',voice:'clear bright young Vietnamese woman, brisk efficient pace, casual office-girl tone, confident and relatable, slight vocal fry at times',style:'nhanh gọn, thực tế, hay kể chuyện đi làm/tan ca/deadline, hài nhẹ, tự nhiên như nhắn voice cho bạn',look:'young woman late 20s, smart-casual office outfit, hair tied or loose, light everyday makeup, lanyard or tote bag optional',setting:'tidy desk/office pantry, modern apartment, window light after work, laptop and coffee cup in background'},
+genz_f:{label:'Cô gái Gen Z 18-23 tuổi',addr:['tui - mọi người', 'tớ - các bạn', 'em - anh chị', 'mình - các bạn', 'tui - chị em'],region:'giọng trẻ trung, slang vừa phải (xỉu, chill, mê, ghiền)',voice:'youthful bubbly Vietnamese girl, fast energetic pace, expressive pitch swings, giggles, playful',style:'nhí nhảnh, cảm thán, tốc độ nhanh, nhiều cảm xúc, nhưng vẫn kể chi tiết thật',look:'teen/young woman early 20s, trendy casual outfit, hair clips or ponytail, bright natural expressions',setting:'cozy bedroom, ring light glow, aesthetic shelves, pastel tones, phone-recorded feel'},
+mom:{label:'Mẹ bỉm sữa 28-38 tuổi',addr:['mình - các mẹ', 'mẹ - các mẹ', 'em - chị em', 'tui - chị em', 'mình - mọi người'],region:'giọng đời thường, thân thiện',voice:'warm relatable Vietnamese mother, medium pace, soft and caring, slightly tired but cheerful, conversational',style:'tâm sự, thực tế, hay nhắc con cái/việc nhà, nhấn sự an tâm và tiện, không phóng đại',look:'woman early-mid 30s, comfy home clothes, hair in loose bun, no heavy makeup, natural',setting:'bright living room or kitchen at home, toys or baby items softly in background, daylight'},
+young_m:{label:'Chàng trai trẻ review 22-30 tuổi',addr:['mình - anh em', 'tui - mọi người', 'anh - anh em', 'mình - các bạn', 'tui - anh chị'],region:'giọng trẻ thẳng tính, gọn',voice:'casual young Vietnamese man, medium-fast pace, straightforward and slightly humorous, relaxed and genuine',style:'thẳng, hài khô nhẹ, kể trải nghiệm thật, nói gọn, không màu mè',look:'young man mid-20s, plain t-shirt or hoodie, short hair, natural look',setting:'desk setup, room or workshop, neutral tones, practical lighting'},
+seller_m:{label:'Chú/anh bán hàng bình dân 40-50 tuổi',addr:['anh - anh chị', 'chú - cô bác', 'tôi - bà con', 'anh - mọi người', 'tôi - cô chú anh chị'],region:'giọng chợ/xưởng bình dân, nói to rõ, chắc nịch',voice:'confident down-to-earth middle-aged Vietnamese man, clear projecting voice, steady pace with emphasis, honest salesman tone, slight humor',style:'chắc nịch, thật thà, nói giá/chất lượng thẳng, hơi hài, như đang bán ở chợ nhưng không gào',look:'man in his 40s, plain shirt, apron or work vest optional, friendly weathered face',setting:'small shop, market stall or warehouse shelves, goods stacked, fluorescent-plus-daylight look'},
+stylist_f:{label:'Chị KOL sang, tự tin 28-35 tuổi',addr:['chị - các em', 'mình - mọi người', 'chị - các nàng', 'mình - các bạn', 'chị - mọi người'],region:'giọng chuẩn, mượt, sang',voice:'smooth polished confident Vietnamese woman, measured elegant pace, soft low-mid pitch, calm authority, subtle smile',style:'mượt, tự tin, chọn từ tinh tế, nhận xét chi tiết như stylist, ít cảm thán',look:'elegant woman around 30, well-styled outfit, neat hair, refined makeup',setting:'bright minimalist apartment, boutique or vanity corner, soft diffused light, clean tones'},
+elder_f:{label:'Bà/cô lớn tuổi 55-65 tuổi',addr:['bà - bà con', 'cô - cô bác anh chị', 'tui - mọi người', 'bà - các bác', 'cô - mọi người'],region:'giọng quê, chậm rãi, hiền',voice:'older Vietnamese woman, slow gentle pace, slightly raspy warm voice, wise and kind, frequent small pauses',style:'chậm rãi, thủ thỉ, nói từ kinh nghiệm cả đời, giản dị, nhẹ nhàng, không hô hào',look:'woman in her 60s, simple home clothes or ao ba ba, grey hair, gentle wrinkled smile',setting:'old-style home courtyard, kitchen with wooden furniture, warm natural light'}
 };
-const HOOKS=['mở bằng một câu hỏi gây tò mò về chính sản phẩm','mở bằng tình huống than thở quen thuộc mà sản phẩm giải quyết','mở bằng một chi tiết/con số cụ thể nhìn thấy trên sản phẩm','mở bằng việc thú nhận ban đầu mình không tin/không định mua','mở giữa chừng như đang kể dở một câu chuyện','mở bằng việc phủ định một quan niệm sai phổ biến','mở bằng một lời nhắc nhẹ/cảnh báo đừng bỏ lỡ','mở bằng cảm thán thật về cảm giác khi cầm/nhìn sản phẩm','mở bằng việc hỏi ngược người xem một câu đời thường','mở bằng một mẹo nhỏ hoặc bí quyết liên quan sản phẩm','mở bằng việc nhắc một người thân/đồng nghiệp đã hỏi mình','mở bằng so sánh trước và sau khi có sản phẩm'];
+const VSTYLES={
+auto:{d:'Tự chọn giọng điệu hợp nhất với sản phẩm và nhân vật.',v:''},
+tiktok:{d:'Bán hàng TikTok: nhịp nhanh, cuốn, hook trúng đối tượng, nói thẳng lợi ích, câu dứt khoát, nhấn từ khóa, chốt đơn rõ ràng; cắt cảnh nhanh, nhạc nền trending nhẹ',v:'upbeat confident TikTok seller voice, brisk pace, clear emphasis on key words, persuasive but natural'},
+humor_light:{d:'Hài hước nhẹ: duyên, dí dỏm, một hai câu ví von vui hoặc tự giễu nhẹ, không lố, không chê khách; nụ cười nhẹ, nhạc nền vui',v:'friendly witty voice, light chuckles, relaxed playful pace'},
+humor_funny:{d:'Bựa hài, lầy lội: nói quá, ví von bất ngờ, hỏi tu từ troll nhẹ, đảo ý bất ngờ; vẫn giữ đúng thông tin thật của sản phẩm, không xúc phạm ai; hợp tuổi nhân vật (nhân vật lớn tuổi thì bựa kiểu dí dỏm chân chất)',v:'playful comedic voice, exaggerated expressions, quick comic timing, occasional laughs'},
+cute:{d:'Nhí nhảnh: vui tươi, nhiều cảm thán, nhịp nhanh, biểu cảm tươi; nhân vật lớn tuổi thì tươi vui hồ hởi chứ không bắt chước giọng teen; màu sáng, nhạc nền tươi',v:'cheerful bubbly voice, higher pitch swings, fast lively pace'},
+serious:{d:'Nghiêm túc, chắc chắn: điềm đạm, rõ ràng, nói bằng sự thật và đặc điểm có thật, không cảm thán, không đùa; nhạc nền trầm hoặc không nhạc, ánh sáng thực, cảnh quay ổn định',v:'calm serious steady voice, measured pace, firm and trustworthy, no giggles'},
+warm:{d:'Tâm sự chân thành: ấm, kể trải nghiệm, nhẹ nhàng, chậm vừa; ánh sáng ấm, nhạc nền êm',v:'warm sincere conversational voice, gentle pace, soft smile in the tone'},
+expert:{d:'Chuyên gia chia sẻ: giải thích dễ hiểu vì sao sản phẩm phù hợp, cách chọn, lưu ý khi dùng; chỉ dùng kiến thức chung chắc chắn, không bịa số liệu hay chứng nhận; cử chỉ minh họa gọn',v:'knowledgeable clear explaining voice, confident and calm, steady pace'},
+story:{d:'Kể chuyện đời thường: mở bằng một tình huống cụ thể rồi dẫn tới sản phẩm, có chi tiết đời sống, cảm xúc tự nhiên; cảnh quay như đời thực',v:'natural storytelling voice, varied pace, expressive pauses'},
+honest:{d:'Review thật thà: nói thẳng điểm hay đúng như thông tin có thật, nói ai nên mua và cách dùng, tạo độ tin cậy; không bịa nhược điểm hay số liệu',v:'honest down-to-earth reviewer voice, plain-spoken, sincere'},
+asmr:{d:'Thủ thỉ nhẹ nhàng kiểu ASMR: chậm, nhỏ, êm, nhấn tiếng động thật của sản phẩm (chạm, mở, rót); nhạc nền rất nhẹ, cảnh quay chậm, cận chi tiết',v:'soft whispery intimate voice, slow pace, gentle breathy tone'}
+};
+const REVIEWS={
+auto:'Tự chọn kiểu review hợp sản phẩm nhất.',
+direct:'Giới thiệu trực tiếp: nói thẳng sản phẩm là gì, hợp với ai, điểm hay thật, cách mua.',
+problem:'Giải quyết vấn đề: nêu rắc rối quen thuộc của đối tượng rồi cho thấy sản phẩm gỡ thế nào.',
+unbox:'Mở hộp/khoe hàng: cầm lên khoe từng chi tiết thật của sản phẩm, kể cảm nhận khi cầm.',
+compare:'So sánh trước và sau (hoặc với cách làm cũ): chỉ so sánh định tính, không bịa số liệu.',
+qa:'Hỏi đáp: nêu một câu hỏi khách hay hỏi về sản phẩm rồi trả lời bằng thông tin thật.',
+story:'Kể trải nghiệm: kể ngắn gọn lúc dùng sản phẩm, cảm giác thật.',
+tips:'Mẹo/bí quyết: chia sẻ mẹo dùng hoặc chọn mua liên quan đến sản phẩm, rồi dẫn vào sản phẩm.',
+reason:'Top lý do nên mua: 3 lý do ngắn gọn rút từ đặc điểm thật của sản phẩm.'
+};
+const HOOKS=['mở bằng một câu hỏi gây tò mò về chính sản phẩm','mở bằng tình huống than thở quen thuộc mà sản phẩm giải quyết','mở bằng một chi tiết/con số cụ thể nhìn thấy trên sản phẩm','mở bằng việc thú nhận ban đầu mình không tin/không định mua','mở giữa chừng như đang kể dở một câu chuyện','mở bằng việc phủ định một quan niệm sai phổ biến','mở bằng một lời nhắc nhẹ/cảnh báo đừng bỏ lỡ','mở bằng cảm thán thật về cảm giác khi cầm/nhìn sản phẩm','mở bằng việc hỏi ngược người xem một câu đời thường','mở bằng một mẹo nhỏ hoặc bí quyết liên quan sản phẩm','mở bằng việc nhắc một người thân/đồng nghiệp đã hỏi mình','mở bằng so sánh trước và sau khi có sản phẩm','mở bằng việc hỏi thẳng đúng đối tượng mua đã từng thử loại sản phẩm này chưa rồi giới thiệu đúng tên loại/mẫu','mở bằng một đặc điểm khiến sản phẩm khác biệt rồi hỏi người xem đã biết chưa','mở bằng lời nhắn riêng cho một nhóm người cụ thể đang cần sản phẩm này'];
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 function hookHist(){try{return JSON.parse(localStorage.getItem('hk')||'[]')}catch(e){return[]}}
 function saveHook(h){try{const a=hookHist();a.unshift(h);localStorage.setItem('hk',JSON.stringify(a.slice(0,12)))}catch(e){}}
 function buildPrompt(){
   const person={auto:'Tự quyết định có nên có người hay không dựa trên loại sản phẩm (VD: thời trang, mỹ phẩm, đồ dùng cá nhân, gia dụng cần demo → thường có người; đồ vật nhỏ, phụ kiện, thực phẩm đóng gói cần tả chi tiết → có thể chỉ tay/sản phẩm). Giải thích ngắn gọn.',yes:'BẮT BUỘC có người xuất hiện (người mẫu/KOC) tương tác với sản phẩm.',no:'KHÔNG có người; chỉ sản phẩm, bàn tay không lộ mặt cũng không dùng, tập trung cận cảnh sản phẩm.'}[mode];
-  return `Bạn là chuyên gia làm video affiliate TikTok/Reels bán hàng. ${files.length?'Các ảnh đính kèm là ảnh sản phẩm (theo thứ tự tải lên). ':''}Thông tin sản phẩm từ người dùng:\n"""\n${$('info').value.trim()||'(không có, hãy suy ra từ ảnh)'}\n"""\nYêu cầu người xuất hiện: ${person}\n\nNhiệm vụ: nhận diện sản phẩm, chọn kiểu kịch bản affiliate TikTok phù hợp nhất (giải quyết vấn đề, before/after, unboxing, ASMR cận cảnh, review nhanh, lifestyle...), rồi lên kịch bản video DỌC 9:16 dài 15 giây gồm 4 phân cảnh liên tiếp (0-3s, 3-7s, 7-11s, 11-15s).
+  return `Bạn là chuyên gia làm video affiliate TikTok/Reels bán hàng. ${files.length?'Các ảnh đính kèm là ảnh sản phẩm (theo thứ tự tải lên). ':''}Thông tin sản phẩm từ người dùng:\n"""\n${$('info').value.trim()||'(không có, hãy suy ra từ ảnh)'}\n"""\nYêu cầu người xuất hiện: ${person}\n\nNhiệm vụ: nhận diện sản phẩm, chọn kiểu kịch bản affiliate TikTok phù hợp nhất (giải quyết vấn đề, before/after, unboxing, ASMR cận cảnh, review nhanh, lifestyle...), rồi lên kịch bản video DỌC 9:16 dài khoảng 22 giây (20-25 giây) gồm 4 phân cảnh liên tiếp (0-5s, 5-11s, 11-17s, 17-22s).
 ${(()=>{
   const k=$('voice').value,P=PERSONAS[k],hist=hookHist();
   const hook=pick(HOOKS);
@@ -230,13 +318,21 @@ ${(()=>{
     const ad=pick(P.addr);
     t+=`NHÂN VẬT ĐÃ CHỌN: ${P.label}. Xưng hô: "${ad}" (dùng nhất quán suốt video). ${P.region}.\nCách nói: ${P.style}.\nGiọng (đưa nguyên văn vào veo_prompt): ${P.voice}.\nNgoại hình/trang phục (đưa vào storyboard_prompt và veo_prompt): ${P.look}.\nBối cảnh (đưa vào cả hai prompt): ${P.setting}.\n`;
   }else{
-    t+=`NHÂN VẬT: hãy tự chọn MỘT nhân vật hợp nhất với sản phẩm từ danh sách: ${Object.values(PERSONAS).map(x=>x.label).join('; ')}. Rồi tự quyết xưng hô riêng cho nhân vật đó (đa dạng: tôi/chú/bác/dì/chị/mình/tui/tớ/em/bà; gọi người xem: bà con/cô bác/mấy bà/các mẹ/anh em/mọi người...). Giọng, cách nói, ngoại hình, trang phục, bối cảnh đều phải đúng nhân vật đó.\n`;
+    t+=`NHÂN VẬT: hãy tự chọn MỘT nhân vật hợp nhất với sản phẩm từ danh sách: ${Object.values(PERSONAS).map(x=>x.label).join('; ')}. Rồi tự quyết xưng hô riêng cho nhân vật đó (đa dạng: tôi/chú/bác/dì/chị/mình/tui/tớ/em/bà; gọi người xem: bà con/cô bác/các bác/anh chị/các mẹ/anh em/chị em/mọi người...). Giọng, cách nói, ngoại hình, trang phục, bối cảnh đều phải đúng nhân vật đó.\n`;
   }
   t+=`NGUYÊN TẮC NHÂN VẬT: giọng, từ vựng, tốc độ, cảm xúc, trang phục, bối cảnh và cử chỉ phải ĂN KHỚP với nhau. Nhân vật điềm đạm tuyệt đối không nói nhí nhảnh; nhân vật trẻ không nói kiểu già; từ vựng đúng độ tuổi và vùng miền. Khi nhân vật và phong cách bán hàng khác nhau thì nhân vật quyết định giọng, người, bối cảnh; phong cách bán hàng chỉ gợi ý cách quay và điểm nhấn sản phẩm.\n`;
   t+=`HOOK: bắt buộc theo kiểu "${hook}", viết riêng cho chính sản phẩm này từ chi tiết thật nhìn thấy trong ảnh/thông tin; không dùng câu mẫu chung chung.${hist.length?' TUYỆT ĐỐI không lặp lại hay gần giống các hook đã dùng gần đây: '+hist.map(x=>'"'+x+'"').join(' | '):''}\n`;
+  const VS=VSTYLES[$('vstyle').value]||VSTYLES.auto,RF=REVIEWS[$('rfmt').value]||REVIEWS.auto;
+  t+=`PHONG CÁCH VOICE: ${VS.d}.${VS.v?' Chất giọng thêm vào dòng "Voice:" của veo_prompt: '+VS.v+'.':''} Lời thoại, biểu cảm, cử chỉ, nhịp cắt cảnh, nhạc nền, màu sắc và ánh sáng của storyboard phải ăn khớp với phong cách voice này. Nếu phong cách voice không hợp tuổi/tính cách nhân vật thì áp dụng ở mức phù hợp với nhân vật, không phá vỡ tính cách nhân vật.\nKIỂU REVIEW: ${RF}\n`;
   return t;
 })()}
-LỜI THOẠI (quan trọng nhất): video 15 giây nên lời thoại phải ĐỦ DÀI, tổng 50-60 từ tiếng Việt (KHÔNG được ngắn hơn 48 từ), chia theo cảnh: cảnh 1 khoảng 10-12 từ, cảnh 2 khoảng 14-16 từ, cảnh 3 khoảng 14-16 từ, cảnh 4 khoảng 12-14 từ. Hãy tự đếm từ trước khi trả về. Viết như người thật đang nói thành tiếng chứ không phải đọc kịch bản: câu có nhịp dài ngắn đan xen, có từ đệm hợp nhân vật, có chỗ ngắt, tự sửa lời nhẹ, hỏi rồi tự trả lời, một hai chi tiết giác quan cụ thể (nhìn, sờ, mùi, âm thanh) lấy từ sản phẩm thật, một khoảnh khắc cảm xúc nhỏ, và kết bằng CTA tự nhiên đúng chất nhân vật. Không dùng khuôn sáo ("sản phẩm tuyệt vời", "chất lượng cao cấp"), không liệt kê tính năng khô cứng, không lặp mẫu câu cuối đoạn giữa các cảnh.
+LỜI THOẠI (quan trọng nhất): video dài khoảng 22 giây (20-25 giây) nên lời thoại phải đủ dài và đủ nội dung: tổng 62-75 từ tiếng Việt (KHÔNG được dưới 60 từ), chia 4 cảnh: cảnh 1 (hook, 0-5s) 14-18 từ; cảnh 2 (5-11s) 17-20 từ; cảnh 3 (11-17s) 17-20 từ; cảnh 4 (CTA, 17-22s) 14-17 từ. Tự đếm từ trước khi trả về.
+CÁCH GỌI KHÁCH: TUYỆT ĐỐI không gọi người xem là "mấy đứa", "tụi bây", "bọn bây", "con", "cháu". Gọi theo tuổi và hợp nhân vật: nhân vật lớn tuổi gọi bà con/cô bác/các bác/anh chị; nhân vật trẻ gọi anh chị/cô chú/các bạn/mọi người/chị em; chọn cách gọi hợp với đối tượng mua sản phẩm (nông sản, cây giống thì bà con/các bác).
+HOOK phải đủ dài và cuốn (14-18 từ, 1-2 câu hoàn chỉnh, không phải mẩu cụt): nói thẳng vào đúng đối tượng mua, nêu đúng loại sản phẩm cùng một điểm đặc trưng thật, khiến người xem muốn nghe tiếp. Ví dụ về cách làm (chỉ để học cấu trúc cho sản phẩm cây giống, TUYỆT ĐỐI không dùng nội dung này cho sản phẩm khác): "Các bác đã trồng thử cây việt quất chưa, đây là giống việt quất tứ quý, cây khỏe ít sâu bệnh."
+THÂN BÀI: nêu các đặc điểm thật và lợi ích cụ thể cho người dùng, liền mạch như đang nói chuyện, mỗi cảnh 1-2 câu đầy đủ ý, nối nhau bằng từ nối tự nhiên. Không câu cụt, không rời rạc, không liệt kê lê thê.
+CTA: kêu gọi hành động rõ ràng, tự nhiên như người bán hàng thật hay nói (ví dụ nhắc xem giỏ hàng hay link bên dưới, đổi cách nói mỗi lần), không bịa khuyến mãi.
+Viết như người thật nói thành tiếng chứ không đọc kịch bản: từ đệm hợp nhân vật (nha, nè, á, nhé), chỗ ngắt, hỏi rồi tự trả lời, một hai chi tiết cụ thể từ sản phẩm thật; không khuôn sáo ("sản phẩm tuyệt vời", "chất lượng cao cấp"); không dùng ví dụ mẫu hay sản phẩm khác.
+CHỈ DÙNG THÔNG TIN CÓ THẬT trong ảnh và ô thông tin sản phẩm. Không tự thêm giá, khuyến mãi (mua 1 tặng 1, giảm %), thời gian hiệu quả, số liệu, cam kết, chứng nhận, đánh giá khách. Nếu thiếu thông tin thì nói theo cảm nhận nhìn thấy được. Trước khi trả về, tự kiểm tra: đúng loại sản phẩm, không bịa, không gọi khách là "mấy đứa", đủ từ, đúng nhân vật và phong cách voice; chưa đạt thì viết lại.
 Phong cách bán hàng: ${STYLES[$('style').value]||STYLES.auto}
 Quy tắc nội dung: không bịa tính năng/giá không có trong thông tin; không claim y tế sai sự thật.
 QUY TẮC BẮT BUỘC để video không méo, không đơ, đúng vật lý:
@@ -248,10 +344,10 @@ QUY TẮC BẮT BUỘC để video không méo, không đơ, đúng vật lý:
 
 Tạo đúng 2 prompt tiếng Anh:
 1) "storyboard_prompt": MỘT prompt tạo MỘT ảnh duy nhất dạng lưới 2x2 gồm 4 khung dọc 9:16 nhỏ, có gutter trắng mỏng, đánh số 1-4 theo thứ tự đọc (trái→phải, trên→dưới), mỗi khung là một phân cảnh, cùng một sản phẩm giống hệt ảnh tham chiếu, cùng phong cách ánh sáng/màu sắc nhất quán${person.includes('KHÔNG')?'':', cùng một nhân vật nhất quán đúng ngoại hình, trang phục và bối cảnh của nhân vật đã chọn'}, ghi rõ nội dung từng khung. Không có chữ nào trong ảnh ngoài số thứ tự.
-2) "veo_prompt": MỘT prompt cho Veo, dùng ảnh storyboard làm tham chiếu: yêu cầu video dọc 9:16 dài 15 giây, chuyển động tuần tự theo 4 khung số 1→4, KHÔNG hiển thị lưới, viền hay số trong video, mỗi khung thành một cảnh liền mạch với chuyển cảnh mượt. Ghi rõ từng mốc thời gian, camera, ánh sáng, nhạc nền nhẹ, và lời thoại tiếng Việt ĐẦY ĐỦ của KOL (giữ nguyên các câu dài, từ đệm, chỗ ngắt nghỉ) đặt trong ngoặc kép, kèm dòng "Voice:" mô tả chất giọng của nhân vật, và chỉ dẫn (tông, tốc độ, cảm xúc, ngắt nghỉ, hơi thở) cho từng mốc để giọng nghe tự nhiên như người thật nói chuyện, không đều đều. Nêu rõ không thêm chữ/logo ngoài sản phẩm gốc.
+2) "veo_prompt": MỘT prompt cho Veo, dùng ảnh storyboard làm tham chiếu: yêu cầu video dọc 9:16 dài khoảng 22 giây, chuyển động tuần tự theo 4 khung số 1→4, KHÔNG hiển thị lưới, viền hay số trong video, mỗi khung thành một cảnh liền mạch với chuyển cảnh mượt. Ghi rõ từng mốc thời gian, camera, ánh sáng, nhạc nền nhẹ, và lời thoại tiếng Việt ĐẦY ĐỦ của KOL (giữ nguyên các câu dài, từ đệm, chỗ ngắt nghỉ) đặt trong ngoặc kép, kèm dòng "Voice:" mô tả chất giọng của nhân vật, và chỉ dẫn (tông, tốc độ, cảm xúc, ngắt nghỉ, hơi thở) cho từng mốc để giọng nghe tự nhiên như người thật nói chuyện, không đều đều. Vì Veo thường chỉ tạo tối đa khoảng 8 giây mỗi đoạn, hãy viết veo_prompt chia thành các đoạn nối tiếp (mỗi đoạn không quá 8 giây, ghi rõ mốc thời gian từng đoạn) để có thể cắt dán từng đoạn; mỗi đoạn nhắc lại đủ product_lock, nhân vật, bối cảnh, giọng nói và lời thoại của đoạn đó để các đoạn nhất quán. Nêu rõ không thêm chữ/logo ngoài sản phẩm gốc.
 
 CHỈ trả về JSON hợp lệ, không markdown, theo schema:
-{"product_lock":"mô tả chi tiết sản phẩm bằng tiếng Anh","product":{"name":"","category":"","key_selling_points":["",""]},"person":{"use_person":true,"reason":"giải thích tiếng Việt 1 câu"},"persona":"nhân vật đã dùng + cách xưng hô","concept":{"style":"tên kiểu kịch bản","hook":"câu hook tiếng Việt","cta":"câu CTA tiếng Việt"},"scenes":[{"time":"0-3s","desc_vi":"mô tả cảnh tiếng Việt","voiceover_vi":"lời thoại KOL tiếng Việt của cảnh này"}],"storyboard_prompt":"","veo_prompt":"","caption":"caption đăng bài + 5 hashtag tiếng Việt"}`;
+{"product_lock":"mô tả chi tiết sản phẩm bằng tiếng Anh","product":{"name":"","category":"","key_selling_points":["",""]},"person":{"use_person":true,"reason":"giải thích tiếng Việt 1 câu"},"persona":"nhân vật đã dùng + cách xưng hô","concept":{"style":"tên kiểu kịch bản","hook":"câu hook tiếng Việt","cta":"câu CTA tiếng Việt"},"scenes":[{"time":"0-5s","desc_vi":"mô tả cảnh tiếng Việt","voiceover_vi":"lời thoại KOL tiếng Việt của cảnh này"}],"storyboard_prompt":"","veo_prompt":"","caption":"caption đăng bài + 5 hashtag tiếng Việt"}`;
 }
 
 $('go').onclick=async()=>{
@@ -293,7 +389,7 @@ function render(){
   h+=`<div class="card"><b>🔒 AI nhận diện sản phẩm (kiểm tra có đúng không)</b><div class="mu" style="margin-top:6px">${esc(d.product_lock)}</div></div>`;
   h+=`<div class="card"><b>Kịch bản 4 phân cảnh</b>`+sc.map((s,i)=>`<div style="margin-top:8px"><span class="time">${i+1} · ${esc(s.time)}</span> ${esc(s.desc_vi)}<div class="mu">🎙 ${esc(s.voiceover_vi)}</div></div>`).join('')+`</div>`;
   h+=`<div class="card"><b>① Prompt ảnh storyboard (1 ảnh, 4 khung)</b><pre>${esc(d.storyboard_prompt)}</pre><div class="row"><button class="btn p" id="c1">Copy prompt ảnh</button><a class="btn" target="_blank" rel="noopener" href="https://gemini.google.com/app">Mở Gemini</a></div><div class="mu" style="margin-top:6px">Đính kèm ảnh sản phẩm gốc khi dán vào Gemini (chế độ tạo ảnh).</div></div>`
-   +`<div class="card"><b>② Prompt video Veo (15s + giọng KOL)</b><pre>${esc(d.veo_prompt)}</pre><div class="row"><button class="btn p" id="c2">Copy prompt video</button><a class="btn" target="_blank" rel="noopener" href="https://labs.google/fx/tools/flow">Mở Flow</a></div><div class="mu" style="margin-top:6px">Trong Flow, đính kèm CẢ ảnh sản phẩm gốc và ảnh storyboard rồi dán prompt này.</div></div>`
+   +`<div class="card"><b>② Prompt video Veo (15s + giọng KOL)</b><pre>${esc(d.veo_prompt)}</pre><div class="row"><button class="btn p" id="c2">Copy prompt video</button><a class="btn" target="_blank" rel="noopener" href="https://labs.google/fx/tools/flow">Mở Flow</a></div><div class="mu" style="margin-top:6px">Trong Flow, đính kèm CẢ ảnh sản phẩm gốc và ảnh storyboard rồi dán prompt này. Video 20-25s sẽ thành 3 đoạn, cắt dán theo mốc thời gian từng đoạn.</div></div>`
    +`<div class="card"><b>Caption</b><pre>${esc(d.caption)}</pre><div class="row"><button class="btn" id="cc">Copy caption</button></div></div>`
    +`<button class="go" id="np" style="background:var(--tx);color:var(--bg)">🆕 Sản phẩm mới</button>`;
   $('out').innerHTML=h;
